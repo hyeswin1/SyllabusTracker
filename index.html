@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SyllabusTrack &bull; University Exam & Syllabus Companion</title>
+  
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            heading: ['Outfit', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              200: '#c7d2fe',
+              300: '#a5b4fc',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+  
+  <!-- PDF.js CDN for extracting PDF names and page counts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+  </script>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- ================= TOP NAVIGATION BAR ================= -->
+  <header class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200/80 transition-all">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Brand Logo -->
+      <div class="flex items-center gap-3 cursor-pointer" onclick="app.showDashboardIfActive()">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+          <i data-lucide="graduation-cap" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <span class="font-heading font-bold text-xl tracking-tight bg-gradient-to-r from-slate-900 via-brand-900 to-indigo-600 bg-clip-text text-transparent">SyllabusTrack</span>
+          <span class="hidden sm:inline-block text-xs font-semibold px-2 py-0.5 ml-2 bg-brand-50 text-brand-700 border border-brand-200/60 rounded-full">Student Edition</span>
+        </div>
+      </div>
+
+      <!-- Header Center: Active Exam Pill (Visible on Dashboard) -->
+      <div id="header-active-exam-pill" class="hidden items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-sm font-medium text-slate-700">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span id="header-exam-name" class="font-semibold text-slate-900">Endsem 2026</span>
+        <span class="text-slate-400">&bull;</span>
+        <span id="header-exam-countdown" class="text-xs text-brand-600 font-medium">Tracking in progress</span>
+      </div>
+
+      <!-- Header Actions -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- Daily Target Button (Header) -->
+        <button id="btn-header-daily-target" onclick="app.openDailyTargetModal()" class="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors shadow-sm">
+          <i data-lucide="target" class="w-4 h-4 text-amber-600"></i>
+          <span>Today's Target</span>
+          <span id="badge-daily-target-count" class="text-xs px-1.5 py-0.5 rounded-full bg-amber-200 text-amber-800 font-bold">0/0</span>
+        </button>
+
+        <!-- Exam Actions Dropdown / Quick Buttons -->
+        <div id="header-dashboard-actions" class="hidden items-center gap-2">
+          <button onclick="app.triggerExamOverModal()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition shadow-sm" title="Mark this exam as finished & review results">
+            <i data-lucide="trophy" class="w-4 h-4 text-rose-600"></i>
+            <span class="hidden md:inline">Exam Over</span>
+          </button>
+          <button onclick="app.confirmNewExam()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 transition shadow-sm" title="Reset and start a fresh exam registration">
+            <i data-lucide="plus-circle" class="w-4 h-4 text-slate-500"></i>
+            <span class="hidden md:inline">New Exam</span>
+          </button>
+        </div>
+
+        <!-- Quick Demo Loader (When no active exam) -->
+        <button id="btn-quick-demo" onclick="app.loadSampleData()" class="text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg font-medium transition flex items-center gap-1.5 border border-slate-200">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
+          <span>Sample Demo</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ================= MAIN CONTAINER ================= -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+
+    <!-- ================= VIEW 1: REGISTRATION WIZARD (PAGE BY PAGE) ================= -->
+    <section id="view-wizard" class="max-w-3xl mx-auto transition-all duration-300">
+      
+      <!-- Wizard Progress Stepper -->
+      <div class="mb-8 bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-slate-200">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <span class="text-xs font-semibold tracking-wider uppercase text-brand-600">Setup Wizard</span>
+            <h2 id="wizard-title" class="text-xl sm:text-2xl font-heading font-bold text-slate-900">Let's set up your exam</h2>
+          </div>
+          <span id="wizard-step-badge" class="px-3 py-1 text-xs font-semibold rounded-full bg-brand-50 text-brand-700 border border-brand-200">
+            Step 1 of 5
+          </span>
+        </div>
+
+        <!-- Visual Step Bar -->
+        <div class="relative w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+          <div id="wizard-progress-bar" class="bg-gradient-to-r from-brand-600 to-indigo-500 h-2 rounded-full transition-all duration-500 ease-out" style="width: 20%;"></div>
+        </div>
+
+        <!-- Step Labels -->
+        <div class="grid grid-cols-5 text-center mt-3 text-[11px] sm:text-xs font-medium text-slate-500">
+          <div id="step-label-1" class="text-brand-700 font-semibold">1. Exam</div>
+          <div id="step-label-2">2. Count</div>
+          <div id="step-label-3">3. Subjects</div>
+          <div id="step-label-4">4. Lectures</div>
+          <div id="step-label-5">5. Tutorials</div>
+        </div>
+      </div>
+
+      <!-- Wizard Step Card -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 relative">
+
+        <!-- ================= STEP 1: EXAM NAME & DATE ================= -->
+        <div id="wizard-step-1" class="wizard-step">
+          <div class="text-center max-w-md mx-auto mb-8">
+            <div class="w-16 h-16 mx-auto mb-4 bg-brand-50 rounded-2xl flex items-center justify-center text-brand-600 border border-brand-100 shadow-inner">
+              <i data-lucide="book-open" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-2xl font-heading font-bold text-slate-900">What exam are you preparing for?</h3>
+            <p class="text-sm text-slate-500 mt-2">Enter your upcoming examination name so we can tailor your study schedule and checklist.</p>
+          </div>
+
+          <div class="space-y-5 max-w-md mx-auto">
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1.5" for="input-exam-name">
+                Exam Title <span class="text-rose-500">*</span>
+              </label>
+              <input type="text" id="input-exam-name" placeholder="e.g., Endsem Examinations, Midsem 2026, GATE, Finals"
+                class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 text-slate-900 text-base placeholder:text-slate-400 outline-none transition" />
+              <p class="text-xs text-slate-400 mt-1.5">You can track any major exam, semester final, or unit test.</p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1.5" for="input-exam-date">
+                Exam Start Date (Optional)
+              </label>
+              <input type="date" id="input-exam-date"
+                class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 text-slate-900 text-base outline-none transition" />
+              <p class="text-xs text-slate-400 mt-1.5">Used to show a countdown clock and daily pacing hints.</p>
+            </div>
+
+            <!-- Quick Suggestions -->
+            <div class="pt-2">
+              <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">Quick presets</span>
+              <div class="flex flex-wrap gap-2">
+                <button type="button" onclick="app.setExamNamePreset('Endsem Examinations')" class="px-3 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-brand-50 hover:text-brand-700 text-slate-600 transition border border-slate-200">Endsem</button>
+                <button type="button" onclick="app.setExamNamePreset('Midsem Exams')" class="px-3 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-brand-50 hover:text-brand-700 text-slate-600 transition border border-slate-200">Midsem</button>
+                <button type="button" onclick="app.setExamNamePreset('Semester Finals 2026')" class="px-3 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-brand-50 hover:text-brand-700 text-slate-600 transition border border-slate-200">Finals</button>
+                <button type="button" onclick="app.setExamNamePreset('University Quizzes & Viva')" class="px-3 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-brand-50 hover:text-brand-700 text-slate-600 transition border border-slate-200">Quizzes & Viva</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= STEP 2: HOW MANY SUBJECTS ================= -->
+        <div id="wizard-step-2" class="wizard-step hidden">
+          <div class="text-center max-w-md mx-auto mb-8">
+            <div class="w-16 h-16 mx-auto mb-4 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 border border-indigo-100 shadow-inner">
+              <i data-lucide="layers" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-2xl font-heading font-bold text-slate-900">How many subjects are in this exam?</h3>
+            <p class="text-sm text-slate-500 mt-2">Select the number of courses or subjects you'll be studying for.</p>
+          </div>
+
+          <div class="max-w-md mx-auto space-y-6">
+            <!-- Counter Stepper -->
+            <div class="flex items-center justify-center gap-6 py-4">
+              <button type="button" onclick="app.changeSubjectCount(-1)" class="w-14 h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 active:scale-95 flex items-center justify-center text-2xl font-bold text-slate-700 transition shadow-sm border border-slate-200">
+                &minus;
+              </button>
+              <div class="text-center min-w-[120px]">
+                <span id="display-subject-count" class="font-heading font-extrabold text-5xl text-brand-600">4</span>
+                <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mt-1">Subjects</span>
+              </div>
+              <button type="button" onclick="app.changeSubjectCount(1)" class="w-14 h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 active:scale-95 flex items-center justify-center text-2xl font-bold text-slate-700 transition shadow-sm border border-slate-200">
+                +
+              </button>
+            </div>
+
+            <!-- Quick pick grid -->
+            <div class="grid grid-cols-6 gap-2 pt-2">
+              <button type="button" data-count="1" onclick="app.setSubjectCount(1)" class="btn-subject-preset py-2.5 rounded-xl text-sm font-semibold border border-slate-200 bg-slate-50 hover:bg-brand-50 hover:text-brand-700 hover:border-brand-300 transition">1</button>
+              <button type="button" data-count="2" onclick="app.setSubjectCount(2)" class="btn-subject-preset py-2.5 rounded-xl text-sm font-semibold border border-slate-200 bg-slate-50 hover:bg-brand-50 hover:text-brand-700 hover:border-brand-300 transition">2</button>
+              <button type="button" data-count="3" onclick="app.setSubjectCount(3)" class="btn-subject-preset py-2.5 rounded-xl text-sm font-semibold border border-slate-200 bg-slate-50 hover:bg-brand-50 hover:text-brand-700 hover:border-brand-300 transition">3</button>
+              <button type="button" data-count="4" onclick="app.setSubjectCount(4)" class="btn-subject-preset py-2.5 rounded-xl text-sm font-semibold border border-brand-300 bg-brand-50 text-brand-700 font-bold transition">4</button>
+              <button type="button" data-count="5" onclick="app.setSubjectCount(5)" class="btn-subject-preset py-2.5 rounded-xl text-sm font-semibold border border-slate-200 bg-slate-50 hover:bg-brand-50 hover:text-brand-700 hover:border-brand-300 transition">5</button>
+              <button type="button" data-count="6" onclick="app.setSubjectCount(6)" class="btn-subject-preset py-2.5 rounded-xl text-sm font-semibold border border-slate-200 bg-slate-50 hover:bg-brand-50 hover:text-brand-700 hover:border-brand-300 transition">6+</button>
+            </div>
+            <p class="text-xs text-center text-slate-400">You can also add or remove subjects later from the dashboard settings.</p>
+          </div>
+        </div>
+
+        <!-- ================= STEP 3: SUBJECT DETAILS (NAMES & COURSE CODES) ================= -->
+        <div id="wizard-step-3" class="wizard-step hidden">
+          <div class="text-center max-w-lg mx-auto mb-6">
+            <div class="w-14 h-14 mx-auto mb-3 bg-violet-50 rounded-2xl flex items-center justify-center text-violet-600 border border-violet-100 shadow-inner">
+              <i data-lucide="folder-kanban" class="w-7 h-7"></i>
+            </div>
+            <h3 class="text-2xl font-heading font-bold text-slate-900">Define your subjects</h3>
+            <p class="text-sm text-slate-500 mt-1">Provide the course title and subject code/abbreviation for each of your subjects.</p>
+          </div>
+
+          <!-- Dynamic Subject Input Rows -->
+          <div id="subject-inputs-container" class="space-y-4 max-h-[420px] overflow-y-auto pr-1">
+            <!-- Dynamically populated by JavaScript -->
+          </div>
+
+          <div class="mt-4 flex justify-end">
+            <button type="button" onclick="app.addNewSubjectRow()" class="text-xs font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1.5 py-1.5 px-3 rounded-lg hover:bg-brand-50 transition border border-dashed border-brand-300">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>Add another subject</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- ================= STEP 4: LECTURE PDFS FOR EACH SUBJECT ================= -->
+        <div id="wizard-step-4" class="wizard-step hidden">
+          <div class="text-center max-w-xl mx-auto mb-6">
+            <div class="w-14 h-14 mx-auto mb-3 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 border border-blue-100 shadow-inner">
+              <i data-lucide="file-text" class="w-7 h-7"></i>
+            </div>
+            <h3 class="text-2xl font-heading font-bold text-slate-900">Upload Lecture PDFs</h3>
+            <p class="text-sm text-slate-500 mt-1">Upload lecture slides, notes, or chapter PDFs for each subject. We'll automatically generate your checklist!</p>
+          </div>
+
+          <!-- Subject Tabs for Lecture Upload -->
+          <div id="wizard-lecture-subject-tabs" class="flex flex-wrap gap-2 border-b border-slate-200 pb-3 mb-4">
+            <!-- Dynamic tab buttons -->
+          </div>
+
+          <!-- Active Subject Lecture Upload Box -->
+          <div id="wizard-lecture-upload-panel" class="space-y-4">
+            <!-- Dropzone -->
+            <div id="lecture-dropzone" class="border-2 border-dashed border-slate-300 hover:border-brand-500 rounded-2xl p-6 text-center bg-slate-50/50 hover:bg-brand-50/20 transition cursor-pointer relative group">
+              <input type="file" id="lecture-file-input" multiple accept=".pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+              <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-white shadow-sm border border-slate-200 flex items-center justify-center text-brand-600 group-hover:scale-110 transition-transform">
+                <i data-lucide="upload-cloud" class="w-6 h-6"></i>
+              </div>
+              <p class="text-sm font-semibold text-slate-700">Click to upload or drag & drop lecture PDFs</p>
+              <p class="text-xs text-slate-400 mt-1">PDFs are analyzed client-side to extract topic names and page counts</p>
+            </div>
+
+            <!-- Manual Topic Adder -->
+            <div class="flex gap-2">
+              <input type="text" id="manual-lecture-input" placeholder="Or type topic name manually (e.g. Lec 01: Introduction & Asymptotics)"
+                class="flex-1 px-3.5 py-2 text-sm rounded-xl border border-slate-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none" />
+              <button type="button" onclick="app.addManualLecture()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-sm font-medium transition flex items-center gap-1.5 shadow-sm">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>Add</span>
+              </button>
+            </div>
+
+            <!-- Compiled Lecture Items Preview for this Subject -->
+            <div>
+              <div class="flex items-center justify-between text-xs font-semibold text-slate-500 mb-2">
+                <span id="lecture-preview-heading">Compiled Lectures (0)</span>
+                <span class="text-slate-400">Can be edited anytime later</span>
+              </div>
+              <div id="lecture-items-preview-list" class="space-y-2 max-h-56 overflow-y-auto pr-1">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= STEP 5: TUTORIAL PDFS FOR EACH SUBJECT ================= -->
+        <div id="wizard-step-5" class="wizard-step hidden">
+          <div class="text-center max-w-xl mx-auto mb-6">
+            <div class="w-14 h-14 mx-auto mb-3 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600 border border-amber-100 shadow-inner">
+              <i data-lucide="clipboard-list" class="w-7 h-7"></i>
+            </div>
+            <h3 class="text-2xl font-heading font-bold text-slate-900">Tutorial & Problem Sheet PDFs</h3>
+            <p class="text-sm text-slate-500 mt-1">Upload problem sets, tutorial sheets, or lab assignments. (Optional &bull; Skip if not applicable)</p>
+          </div>
+
+          <!-- Subject Tabs for Tutorial Upload -->
+          <div id="wizard-tutorial-subject-tabs" class="flex flex-wrap gap-2 border-b border-slate-200 pb-3 mb-4">
+            <!-- Dynamic tab buttons -->
+          </div>
+
+          <!-- Active Subject Tutorial Upload Box -->
+          <div id="wizard-tutorial-upload-panel" class="space-y-4">
+            <!-- Dropzone -->
+            <div id="tutorial-dropzone" class="border-2 border-dashed border-slate-300 hover:border-amber-500 rounded-2xl p-6 text-center bg-slate-50/50 hover:bg-amber-50/20 transition cursor-pointer relative group">
+              <input type="file" id="tutorial-file-input" multiple accept=".pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+              <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-white shadow-sm border border-slate-200 flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform">
+                <i data-lucide="file-question" class="w-6 h-6"></i>
+              </div>
+              <p class="text-sm font-semibold text-slate-700">Click to upload or drag & drop tutorial / assignment PDFs</p>
+              <p class="text-xs text-slate-400 mt-1">Parsed into actionable practice targets on your syllabus dashboard</p>
+            </div>
+
+            <!-- Manual Tutorial Adder -->
+            <div class="flex gap-2">
+              <input type="text" id="manual-tutorial-input" placeholder="Or type sheet name (e.g. Tutorial Sheet 01: Recurrences)"
+                class="flex-1 px-3.5 py-2 text-sm rounded-xl border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none" />
+              <button type="button" onclick="app.addManualTutorial()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-sm font-medium transition flex items-center gap-1.5 shadow-sm">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>Add</span>
+              </button>
+            </div>
+
+            <!-- Compiled Tutorial Items Preview -->
+            <div>
+              <div class="flex items-center justify-between text-xs font-semibold text-slate-500 mb-2">
+                <span id="tutorial-preview-heading">Compiled Tutorials (0)</span>
+                <span class="text-slate-400">Ready to track practice</span>
+              </div>
+              <div id="tutorial-items-preview-list" class="space-y-2 max-h-56 overflow-y-auto pr-1">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Wizard Navigation Footer (Back / Next / Finish) -->
+        <div class="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
+          <button type="button" id="btn-wizard-back" onclick="app.prevWizardStep()"
+            class="px-5 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold text-sm transition flex items-center gap-2 disabled:opacity-40 disabled:pointer-events-none">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            <span>Back</span>
+          </button>
+
+          <div class="flex items-center gap-3">
+            <button type="button" id="btn-wizard-next" onclick="app.nextWizardStep()"
+              class="px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm transition flex items-center gap-2 shadow-md shadow-brand-500/25">
+              <span>Next</span>
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================= VIEW 2: MAIN DASHBOARD ================= -->
+    <section id="view-dashboard" class="hidden space-y-6">
+
+      <!-- Top Dashboard Hero Banner -->
+      <div class="bg-gradient-to-r from-brand-900 via-indigo-900 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
+        <!-- Abstract glowing circles -->
+        <div class="absolute -right-10 -bottom-10 w-72 h-72 bg-brand-500/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute left-1/3 -top-10 w-52 h-52 bg-indigo-500/20 rounded-full blur-2xl pointer-events-none"></div>
+
+        <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div>
+            <div class="flex flex-wrap items-center gap-2 mb-2">
+              <span class="px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-brand-500/30 text-brand-200 border border-brand-400/30">Active Exam</span>
+              <span id="hero-countdown-badge" class="px-3 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1.5">
+                <i data-lucide="clock" class="w-3 h-3"></i>
+                <span id="hero-countdown-text">Exam on schedule</span>
+              </span>
+            </div>
+            <h1 id="hero-exam-title" class="text-3xl sm:text-4xl font-heading font-extrabold tracking-tight">Endsem Examinations</h1>
+            <p id="hero-exam-subtitle" class="text-slate-300 text-sm mt-1 max-w-xl">
+              Stay consistent, crush your daily target, and complete your syllabus chapter by chapter.
+            </p>
+          </div>
+
+          <!-- Overall Progress Card in Hero -->
+          <div class="flex flex-wrap sm:flex-nowrap items-center gap-4 bg-white/10 backdrop-blur-md border border-white/10 p-4 sm:p-5 rounded-2xl min-w-[280px]">
+            <!-- Circular Progress or Percentage -->
+            <div class="relative w-20 h-20 flex-shrink-0 flex items-center justify-center">
+              <svg class="w-20 h-20 -rotate-90" viewBox="0 0 36 36">
+                <path class="text-white/10" stroke-width="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path id="hero-progress-ring" class="text-emerald-400 transition-all duration-700 ease-out" stroke-dasharray="0, 100" stroke-width="3.5" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              </svg>
+              <div class="absolute inset-0 flex flex-col items-center justify-center">
+                <span id="hero-progress-percentage" class="text-xl font-heading font-extrabold text-white">0%</span>
+              </div>
+            </div>
+            <div>
+              <span class="text-xs uppercase tracking-wider text-slate-300 font-semibold block">Syllabus Completion</span>
+              <div class="text-sm font-semibold text-white mt-0.5">
+                <span id="hero-stat-completed">0</span> / <span id="hero-stat-total">0</span> Tasks Finished
+              </div>
+              <div class="text-xs text-emerald-300 font-medium mt-1 flex items-center gap-1">
+                <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+                <span id="hero-stat-remaining">0 tasks remaining</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= TODAY'S DAILY TARGET PROMINENT CARD ================= -->
+      <div id="daily-target-card" class="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-white border border-amber-200/80 rounded-2xl p-5 sm:p-6 shadow-sm transition">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0 shadow-sm border border-amber-200">
+              <i data-lucide="flame" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="font-heading font-bold text-lg text-slate-900">Today's Target</h3>
+                <span id="daily-target-status-tag" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
+                  In Progress
+                </span>
+                <span id="daily-target-date-display" class="text-xs text-slate-500 font-medium"></span>
+              </div>
+              <p id="daily-target-quote" class="text-sm text-slate-600 mt-1">
+                Set a focused study target today to prevent last-minute cramming.
+              </p>
+            </div>
+          </div>
+
+          <!-- Target Progress & Action -->
+          <div class="flex items-center gap-4 self-end md:self-auto w-full md:w-auto justify-between md:justify-end">
+            <div class="text-right">
+              <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Goal Progress</div>
+              <div class="text-base font-bold text-slate-800">
+                <span id="daily-completed-count" class="text-amber-600 font-extrabold text-xl">0</span>
+                <span class="text-slate-400">/</span>
+                <span id="daily-total-goal">0</span> Tasks
+              </div>
+            </div>
+            
+            <button onclick="app.openDailyTargetModal()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-semibold transition flex items-center gap-2 shadow-md shadow-amber-600/20">
+              <i data-lucide="edit-3" class="w-4 h-4"></i>
+              <span id="btn-daily-target-label">Set Target</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Daily Target Mini Progress Bar -->
+        <div class="w-full bg-slate-200/80 h-2 rounded-full overflow-hidden mt-4">
+          <div id="daily-target-progress-bar" class="bg-gradient-to-r from-amber-500 to-amber-600 h-2 rounded-full transition-all duration-500" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <!-- ================= QUICK STATS ROW ================= -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        
+        <!-- Lectures Count -->
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3.5">
+          <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+            <i data-lucide="file-text" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Lectures</span>
+            <div class="text-xl font-heading font-bold text-slate-900 mt-0.5">
+              <span id="stat-lecture-done">0</span><span class="text-slate-400 text-sm">/<span id="stat-lecture-total">0</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tutorials Count -->
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3.5">
+          <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center flex-shrink-0">
+            <i data-lucide="clipboard-check" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Tutorials</span>
+            <div class="text-xl font-heading font-bold text-slate-900 mt-0.5">
+              <span id="stat-tutorial-done">0</span><span class="text-slate-400 text-sm">/<span id="stat-tutorial-total">0</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Revision Needed -->
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3.5">
+          <div class="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center flex-shrink-0">
+            <i data-lucide="refresh-cw" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">For Revision</span>
+            <div class="text-xl font-heading font-bold text-slate-900 mt-0.5">
+              <span id="stat-revision-count">0</span> <span class="text-xs font-medium text-slate-400">items</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Study Streak -->
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3.5">
+          <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
+            <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Days</span>
+            <div class="text-xl font-heading font-bold text-slate-900 mt-0.5">
+              <span id="stat-streak-count">1</span> <span class="text-xs font-medium text-slate-400">Day Streak</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ================= MAIN SYLLABUS SECTION ================= -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        
+        <!-- Toolbar: Subject Tabs & Controls -->
+        <div class="p-4 sm:p-6 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/60">
+          
+          <!-- Subject Navigation Pills -->
+          <div id="dashboard-subject-pills" class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+            <!-- Dynamic Subject Filter Pills -->
+          </div>
+
+          <!-- Add Item & Search Actions -->
+          <div class="flex items-center gap-2">
+            <div class="relative flex-1 sm:w-64">
+              <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+              <input type="text" id="dashboard-search-input" oninput="app.handleSearch(this.value)" placeholder="Search lecture or tutorial..."
+                class="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-white rounded-xl border border-slate-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+            </div>
+
+            <button onclick="app.openAddItemModal()" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 flex-shrink-0 shadow-sm">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+              <span>Add Topic</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Sub-filter bar: Type (All, Lectures, Tutorials) & Status (All, Pending, Done, Today's Target) -->
+        <div class="px-4 sm:px-6 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs bg-white">
+          <div class="flex items-center gap-1.5">
+            <span class="font-semibold text-slate-400 uppercase tracking-wider mr-1">Filter:</span>
+            <button onclick="app.setTypeFilter('all')" id="filter-type-all" class="filter-type-btn active px-3 py-1 rounded-lg font-medium bg-slate-900 text-white transition">All Items</button>
+            <button onclick="app.setTypeFilter('lecture')" id="filter-type-lecture" class="filter-type-btn px-3 py-1 rounded-lg font-medium text-slate-600 hover:bg-slate-100 transition">Lectures</button>
+            <button onclick="app.setTypeFilter('tutorial')" id="filter-type-tutorial" class="filter-type-btn px-3 py-1 rounded-lg font-medium text-slate-600 hover:bg-slate-100 transition">Tutorials</button>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <button onclick="app.setStatusFilter('all')" id="filter-status-all" class="filter-status-btn active px-3 py-1 rounded-lg font-medium bg-slate-100 text-slate-800 transition">All</button>
+            <button onclick="app.setStatusFilter('daily')" id="filter-status-daily" class="filter-status-btn px-3 py-1 rounded-lg font-medium text-amber-700 hover:bg-amber-50 transition flex items-center gap-1">
+              <i data-lucide="target" class="w-3 h-3"></i> Today's Target
+            </button>
+            <button onclick="app.setStatusFilter('pending')" id="filter-status-pending" class="filter-status-btn px-3 py-1 rounded-lg font-medium text-slate-600 hover:bg-slate-100 transition">Pending</button>
+            <button onclick="app.setStatusFilter('completed')" id="filter-status-completed" class="filter-status-btn px-3 py-1 rounded-lg font-medium text-emerald-700 hover:bg-emerald-50 transition">Completed</button>
+            <button onclick="app.setStatusFilter('revision')" id="filter-status-revision" class="filter-status-btn px-3 py-1 rounded-lg font-medium text-rose-700 hover:bg-rose-50 transition">Needs Revision</button>
+          </div>
+        </div>
+
+        <!-- ================= SYLLABUS TO-DO LIST ITEMS CONTAINER ================= -->
+        <div id="syllabus-items-list" class="divide-y divide-slate-100 p-2 sm:p-4 min-h-[300px]">
+          <!-- Dynamically populated list of creative to-do list items -->
+        </div>
+
+        <!-- Empty State (When no items match) -->
+        <div id="syllabus-empty-state" class="hidden p-12 text-center">
+          <div class="w-16 h-16 mx-auto mb-3 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center">
+            <i data-lucide="inbox" class="w-8 h-8"></i>
+          </div>
+          <h4 class="font-heading font-bold text-slate-800 text-lg">No syllabus items found</h4>
+          <p class="text-sm text-slate-500 mt-1 max-w-sm mx-auto">There are no tasks matching your current filters or search term.</p>
+          <button onclick="app.resetFilters()" class="mt-4 px-4 py-2 text-xs font-semibold text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-xl transition">
+            Reset Filters
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Bottom Floating / Actions Bar (Exam Over & New Exam) -->
+      <div class="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div>
+          <h4 class="font-heading font-bold text-slate-900">Finished your examination?</h4>
+          <p class="text-xs text-slate-500 mt-0.5">Wrap up this exam session to celebrate your completion report or start a fresh semester syllabus.</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <button onclick="app.triggerExamOverModal()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-semibold text-sm transition flex items-center gap-2 shadow-md shadow-rose-500/20">
+            <i data-lucide="trophy" class="w-4 h-4"></i>
+            <span>Exam Over</span>
+          </button>
+          <button onclick="app.confirmNewExam()" class="px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold text-sm transition flex items-center gap-2">
+            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+            <span>New Exam Setup</span>
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ================= MODAL: DAILY TARGET SETTER ================= -->
+  <div id="modal-daily-target" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
+      
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+            <i data-lucide="target" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-heading font-bold text-xl text-slate-900">Set Today's Target</h3>
+            <span id="modal-daily-target-date" class="text-xs text-slate-500 font-medium"></span>
+          </div>
+        </div>
+        <button onclick="app.closeDailyTargetModal()" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <p class="text-sm text-slate-600 mb-5">
+        What do you intend to accomplish today? Select the specific lectures or tutorials you want to finish before sleeping.
+      </p>
+
+      <!-- Target Selection Mode -->
+      <div class="space-y-4">
+        <!-- Pick items from syllabus -->
+        <div>
+          <div class="flex items-center justify-between text-xs font-semibold text-slate-500 mb-2">
+            <span>Select items for today:</span>
+            <span id="modal-selected-target-count" class="text-amber-600 font-bold">0 selected</span>
+          </div>
+
+          <div id="modal-target-items-list" class="space-y-2 max-h-64 overflow-y-auto pr-1 border border-slate-200 rounded-2xl p-2 bg-slate-50/50">
+            <!-- Dynamic list of pending items with checkboxes -->
+          </div>
+        </div>
+
+        <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800 flex items-start gap-2">
+          <i data-lucide="lightbulb" class="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5"></i>
+          <span>Consistent daily goals keep your retention high and stress low before exams!</span>
+        </div>
+      </div>
+
+      <div class="mt-6 flex items-center justify-end gap-3">
+        <button type="button" onclick="app.closeDailyTargetModal()" class="px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold text-sm transition">
+          Cancel
+        </button>
+        <button type="button" onclick="app.saveDailyTarget()" class="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-sm transition shadow-md shadow-amber-600/25 flex items-center gap-2">
+          <i data-lucide="check" class="w-4 h-4"></i>
+          <span>Save Today's Goal</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= MODAL: EXAM OVER CELEBRATION ================= -->
+  <div id="modal-exam-over" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-100 text-center relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      
+      <!-- Trophy Icon with glow -->
+      <div class="w-20 h-20 mx-auto mb-4 rounded-3xl bg-gradient-to-tr from-amber-400 to-amber-200 text-amber-900 flex items-center justify-center shadow-lg shadow-amber-500/30">
+        <i data-lucide="trophy" class="w-10 h-10"></i>
+      </div>
+
+      <h3 class="font-heading font-extrabold text-2xl sm:text-3xl text-slate-900">Congratulations! Exam Completed</h3>
+      <p class="text-sm text-slate-500 mt-2 max-w-sm mx-auto">
+        You worked hard through the syllabus! Here is your final exam preparation accomplishment summary:
+      </p>
+
+      <!-- Accomplishment Stats Grid -->
+      <div class="grid grid-cols-3 gap-3 my-6 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+        <div>
+          <span class="text-xs text-slate-400 font-semibold block uppercase">Completed</span>
+          <span id="modal-summary-percentage" class="text-2xl font-heading font-extrabold text-emerald-600">100%</span>
+          <span class="text-[11px] text-slate-500 block">Syllabus Covered</span>
+        </div>
+        <div>
+          <span class="text-xs text-slate-400 font-semibold block uppercase">Lectures</span>
+          <span id="modal-summary-lectures" class="text-2xl font-heading font-extrabold text-brand-600">0</span>
+          <span class="text-[11px] text-slate-500 block">Mastered</span>
+        </div>
+        <div>
+          <span class="text-xs text-slate-400 font-semibold block uppercase">Tutorials</span>
+          <span id="modal-summary-tutorials" class="text-2xl font-heading font-extrabold text-purple-600">0</span>
+          <span class="text-[11px] text-slate-500 block">Solved</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="space-y-2">
+        <button onclick="app.startNewExamFromModal()" class="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm transition shadow-md shadow-brand-500/25 flex items-center justify-center gap-2">
+          <i data-lucide="sparkles" class="w-4 h-4"></i>
+          <span>Setup Next Semester / Exam</span>
+        </button>
+        <button onclick="app.closeExamOverModal()" class="w-full py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold text-sm transition">
+          Keep Viewing This Dashboard
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= MODAL: ADD CUSTOM TOPIC / ITEM ================= -->
+  <div id="modal-add-item" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-heading font-bold text-lg text-slate-900">Add Syllabus Topic</h3>
+        <button onclick="app.closeAddItemModal()" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="form-add-item" onsubmit="app.handleSaveNewItem(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Subject <span class="text-rose-500">*</span></label>
+          <select id="new-item-subject-id" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-brand-500 outline-none" required>
+            <!-- Dynamically populated subjects -->
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Item Type <span class="text-rose-500">*</span></label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50">
+              <input type="radio" name="new-item-type" value="lecture" checked class="text-brand-600 focus:ring-brand-500">
+              <span class="text-sm font-medium text-slate-800">Lecture Topic</span>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50">
+              <input type="radio" name="new-item-type" value="tutorial" class="text-brand-600 focus:ring-brand-500">
+              <span class="text-sm font-medium text-slate-800">Tutorial Sheet</span>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Topic / Title <span class="text-rose-500">*</span></label>
+          <input type="text" id="new-item-title" placeholder="e.g. Lec 05: Dynamic Programming & Memoization" required
+            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-brand-500 outline-none" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Pages / Slides</label>
+            <input type="number" id="new-item-pages" min="1" placeholder="e.g. 24"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-brand-500 outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Priority</label>
+            <select id="new-item-priority" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-brand-500 outline-none">
+              <option value="high">High Priority</option>
+              <option value="medium" selected>Medium</option>
+              <option value="low">Low Priority</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" onclick="app.closeAddItemModal()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl">Cancel</button>
+          <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold shadow-sm">Save Topic</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: TOPIC NOTES & REVISION ================= -->
+  <div id="modal-item-notes" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-heading font-bold text-lg text-slate-900">Topic Notes & Doubts</h3>
+        <button onclick="app.closeItemNotesModal()" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <p id="modal-notes-item-title" class="text-xs font-medium text-brand-600 mb-3"></p>
+
+      <div class="space-y-3">
+        <textarea id="modal-notes-textarea" rows="4" placeholder="Write key formulas, important theorem names, or doubts to ask professor..."
+          class="w-full p-3 text-sm rounded-xl border border-slate-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none"></textarea>
+
+        <div class="flex items-center justify-between pt-1">
+          <label class="flex items-center gap-2 text-xs font-medium text-rose-600 cursor-pointer">
+            <input type="checkbox" id="modal-notes-revision-check" class="rounded text-rose-600 focus:ring-rose-500">
+            <span>Mark as needing revision</span>
+          </label>
+          <span id="modal-notes-revision-counter" class="text-xs text-slate-400">Revised: 0 times</span>
+        </div>
+      </div>
+
+      <div class="mt-5 flex justify-end gap-2">
+        <button type="button" onclick="app.closeItemNotesModal()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl">Cancel</button>
+        <button type="button" onclick="app.saveItemNotes()" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold shadow-sm">Save Notes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Application Script -->
+  <script src="script.js"></script>
+</body>
+</html>

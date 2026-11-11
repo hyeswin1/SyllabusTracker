@@ -1,0 +1,128 @@
+/* SyllabusTrack - Custom Styles and Micro-interactions */
+
+/* Custom Scrollbar for smooth scrolling across lists */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Hide scrollbar utility */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Smooth transitions for wizard steps */
+.wizard-step {
+  transition: opacity 0.25s ease-in-out, transform 0.25s ease-in-out;
+}
+
+.wizard-step.hidden {
+  display: none !important;
+}
+
+/* Card hover lift effect */
+.todo-card {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.todo-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.03);
+}
+
+/* Completed item styling */
+.todo-card.completed {
+  background-color: #f8fafc;
+  opacity: 0.85;
+}
+
+.todo-card.completed .item-title {
+  text-decoration: line-through;
+  color: #64748b;
+}
+
+/* Drag-over dropzone styling */
+.dropzone-dragover {
+  border-color: #4f46e5 !important;
+  background-color: #eef2ff !important;
+  transform: scale(1.01);
+}
+
+/* Pulse animation for daily target badge */
+@keyframes softPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+.animate-soft-pulse {
+  animation: softPulse 2s infinite ease-in-out;
+}
+
+/* Toast animation */
+@keyframes toastSlideIn {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.toast-item {
+  animation: toastSlideIn 0.25s ease-out forwards;
+}
+
+/* Custom Checkbox check bounce */
+.checkbox-bounce:checked {
+  animation: checkBounce 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes checkBounce {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+
+/* Active filter buttons */
+.filter-type-btn.active, .filter-status-btn.active {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Print styling in case students want to print their syllabus checklist */
+@media print {
+  header, #view-wizard, .no-print, button {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  #view-dashboard {
+    display: block !important;
+  }
+}
